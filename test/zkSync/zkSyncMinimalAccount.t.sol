@@ -13,6 +13,9 @@ import {
     Transaction,
     MemoryTransactionHelper
 } from "lib/foundry-era-contracts/src/system-contracts/contracts/libraries/MemoryTransactionHelper.sol";
+import {BOOTLOADER_FORMAL_ADDRESS} from "lib/foundry-era-contracts/src/system-contracts/contracts/Constants.sol";
+import {ACCOUNT_VALIDATION_SUCCESS_MAGIC} from
+    "lib/foundry-era-contracts/src/system-contracts/contracts/interfaces/IAccount.sol";
 
 contract ZkMinimalAccountTest is Test {
     using MessageHashUtils for bytes32;
@@ -28,6 +31,7 @@ contract ZkMinimalAccountTest is Test {
         minimalAccount = new ZkMinimalAccount();
         minimalAccount.transferOwnership(ANVIL_DEFAULT_ACCOUNT);
         usdc = new ERC20Mock();
+        vm.deal(address(minimalAccount), AMOUNT);
     }
 
     function testZkOwnerCanExecuteCommands() public {
@@ -52,9 +56,14 @@ contract ZkMinimalAccountTest is Test {
         uint256 value = 0;
         bytes memory functionData = abi.encodeWithSelector(ERC20Mock.mint.selector, address(minimalAccount), AMOUNT);
         Transaction memory transaction = _createUnsignedTransaction(minimalAccount.owner(), 113, dest, value, functionData);
+        transaction = _signTransaction(transaction);
+
         // Act
+        vm.prank(BOOTLOADER_FORMAL_ADDRESS);
+        bytes4 magic = minimalAccount.validateTransaction(EMPTY_BYTES32, EMPTY_BYTES32, transaction);
 
         // Assert
+        assertEq(magic, ACCOUNT_VALIDATION_SUCCESS_MAGIC);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -96,6 +96,10 @@ contract ZkMinimalAccount is IAccount, Ownable {
         payable
         requireFromBootLoaderOrOwner
     {
+        bytes4 magic = _validateTransaction(_transaction);
+        if (magic != ACCOUNT_VALIDATION_SUCCESS_MAGIC) {
+            revert ZkMinimalAccount__InvalidSignature();
+        }
         _executeTransaction(_transaction);
     }
 
